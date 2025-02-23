@@ -3,26 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI HD Converter</title>
+    <title>AI රූප උස්සා නැංවීම</title>
     <style>
         :root {
-            --primary: #2563eb;
-            --secondary: #1e40af;
+            --primary: #3B82F6;
+            --secondary: #2563EB;
         }
         body {
-            font-family: 'Arial', sans-serif;
-            background: #f1f5f9;
+            font-family: 'Roboto', sans-serif;
+            background: #F8FAFC;
             max-width: 800px;
             margin: 2rem auto;
             padding: 1rem;
         }
         .upload-box {
-            border: 2px dashed #94a3b8;
+            border: 2px dashed #94A3B8;
             border-radius: 10px;
             padding: 2rem;
             text-align: center;
             background: white;
             margin-bottom: 2rem;
+            cursor: pointer;
         }
         canvas {
             max-width: 100%;
@@ -38,24 +39,25 @@
         button {
             background: var(--primary);
             color: white;
-            padding: 0.8rem 1.5rem;
+            padding: 12px 24px;
             border: none;
-            border-radius: 6px;
+            border-radius: 8px;
             cursor: pointer;
             transition: 0.2s;
-            margin-top: 1rem;
+            margin: 1rem 0;
         }
         button:hover {
             background: var(--secondary);
         }
         .loader {
-            border: 4px solid #e2e8f0;
+            border: 4px solid #E2E8F0;
             border-top-color: var(--primary);
             border-radius: 50%;
             width: 30px;
             height: 30px;
             animation: spin 1s linear infinite;
             margin: 1rem auto;
+            display: none;
         }
         @keyframes spin {
             to { transform: rotate(360deg); }
@@ -63,16 +65,13 @@
     </style>
 </head>
 <body>
-    <div class="upload-box">
-        <input type="file" id="fileInput" accept="image/*" hidden>
-        <label for="fileInput" style="cursor: pointer;">
-            <h3>🖼️ රූපය තෝරන්න (JPG/PNG)</h3>
-            <p>උපරිම ප්රමාණය: 5MB</p>
-        </label>
+    <div class="upload-box" onclick="document.getElementById('fileInput').click()">
+        <h3>🖼️ රූපය තෝරන්න</h3>
+        <p>(JPG, PNG, 5MB ට අඩු)</p>
     </div>
 
     <div style="text-align: center;">
-        <button onclick="enhanceImage()" id="processBtn">HD කරන්න (4x)</button>
+        <button onclick="processImage()">HD කරන්න</button>
     </div>
 
     <div id="preview">
@@ -86,28 +85,19 @@
         </div>
     </div>
 
-    <div class="loader" id="loader" style="display: none;"></div>
+    <div class="loader" id="loader"></div>
 
-    <!-- TensorFlow.js -->
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.9.0/dist/tf.min.js"></script>
-    
+    <!-- AI Upscaler Library -->
+    <script src="https://cdn.jsdelivr.net/npm/upscaler@1.0.0/dist/upscaler.min.js"></script>
+
     <script>
-        let model = null;
+        const upscaler = new Upscaler({
+            model: 'https://unpkg.com/@upscalerjs/esrgan-slim@1.0.0/models/4x/generator.json',
+        });
+
         let inputImage = null;
 
-        // 1. Model Loading
-        async function loadModel() {
-            try {
-                document.getElementById('loader').style.display = 'block';
-                model = await tf.loadGraphModel('https://cdn.jsdelivr.net/gh/keras-js/keras-js-samples/src/ESRGAN/model/model.json');
-                console.log('Model loaded!');
-                document.getElementById('loader').style.display = 'none';
-            } catch (error) {
-                alert('Model loading failed: ' + error.message);
-            }
-        }
-
-        // 2. Image Handling
+        // රූපය තෝරන්න
         document.getElementById('fileInput').addEventListener('change', function(e) {
             const file = e.target.files[0];
             if (!file) return;
@@ -126,50 +116,37 @@
             reader.readAsDataURL(file);
         });
 
-        // 3. HD Enhancement
-        async function enhanceImage() {
+        // HD කිරීමේ ක්රියාවලිය
+        async function processImage() {
             if (!inputImage) return alert('රූපයක් තෝරන්න!');
-            
+
             const loader = document.getElementById('loader');
             try {
                 loader.style.display = 'block';
                 
-                // Preprocess
-                const inputTensor = tf.browser.fromPixels(inputImage)
-                    .toFloat()
-                    .div(255.0)
-                    .expandDims();
+                // රූපය උස්සා නැංවීම
+                const upscaledImage = await upscaler.upscale(inputImage.src, {
+                    output: 'canvas',
+                    scale: 4
+                });
 
-                // Inference
-                const outputTensor = await model.executeAsync(inputTensor);
-
-                // Postprocess
+                // ප්රතිඵලය පෙන්වන්න
                 const outputCanvas = document.getElementById('outputCanvas');
-                outputCanvas.width = inputImage.width * 4;
-                outputCanvas.height = inputImage.height * 4;
-                
-                await tf.browser.toPixels(outputTensor.squeeze(), outputCanvas);
-                applySharpening(outputCanvas);
+                outputCanvas.width = upscaledImage.width;
+                outputCanvas.height = upscaledImage.height;
+                outputCanvas.getContext('2d').drawImage(upscaledImage, 0, 0);
 
-                // Download
+                // බාගත කිරීම
                 createDownloadButton(outputCanvas);
 
             } catch (error) {
-                alert('Error: ' + error.message);
+                alert('දෝෂය: ' + error.message);
             } finally {
                 loader.style.display = 'none';
-                tf.dispose([inputTensor, outputTensor]);
             }
         }
 
-        // 4. Sharpening
-        function applySharpening(canvas) {
-            const ctx = canvas.getContext('2d');
-            ctx.filter = 'contrast(110%) saturate(120%)';
-            ctx.drawImage(canvas, 0, 0);
-        }
-
-        // 5. Download
+        // බාගත කිරීමේ බොත්තම
         function createDownloadButton(canvas) {
             const btn = document.createElement('button');
             btn.innerHTML = '⬇️ HD රූපය බාගන්න';
@@ -179,11 +156,8 @@
                 link.href = canvas.toDataURL('image/png');
                 link.click();
             };
-            document.querySelector('body').appendChild(btn);
+            document.body.appendChild(btn);
         }
-
-        // Initialize
-        window.onload = loadModel;
     </script>
 </body>
 </html>
