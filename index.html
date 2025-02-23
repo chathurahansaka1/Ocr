@@ -3,41 +3,56 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>රූප වැඩිදියුණු කිරීමේ මෙවලම්</title>
+    <title>Cyber Image Enhancer</title>
     <style>
         :root {
-            --primary: #00ffff;
-            --bg-dark: #1a1a2e;
-            --glass-bg: rgba(255, 255, 255, 0.1);
-            --text-light: #ffffff;
-            --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            --neon-blue: #00f3ff;
+            --neon-purple: #bc13fe;
+            --bg-dark: #0a0a12;
+            --cyber-border: linear-gradient(45deg, var(--neon-blue), var(--neon-purple));
+            --cyber-glow: 0 0 20px var(--neon-blue);
         }
 
         body {
             background: var(--bg-dark);
-            color: var(--text-light);
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: white;
+            font-family: 'Orbitron', sans-serif;
             margin: 0;
             padding: 20px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
             min-height: 100vh;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        /* Cyber Background Effect */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                linear-gradient(90deg, transparent 49%, rgba(0, 243, 255, 0.1) 50%),
+                linear-gradient(transparent 49%, rgba(0, 243, 255, 0.1) 50%);
+            background-size: 5px 5px;
+            z-index: -1;
+            opacity: 0.3;
         }
 
         .container {
             max-width: 1200px;
-            width: 100%;
             margin: 0 auto;
-            padding: 20px;
+            border: 2px solid;
+            border-image: var(--cyber-border) 1;
+            box-shadow: var(--cyber-glow);
+            position: relative;
+            background: rgba(0, 0, 0, 0.8);
         }
 
         .image-editor {
-            background: var(--glass-bg);
-            backdrop-filter: blur(10px);
-            border-radius: 20px;
             padding: 20px;
-            box-shadow: var(--shadow);
+            position: relative;
         }
 
         .controls {
@@ -48,103 +63,126 @@
         }
 
         .control-group {
-            background: var(--glass-bg);
-            backdrop-filter: blur(5px);
+            background: rgba(0, 0, 0, 0.7);
             padding: 20px;
-            border-radius: 15px;
-            box-shadow: var(--shadow);
+            border: 1px solid var(--neon-blue);
+            position: relative;
+            box-shadow: var(--cyber-glow);
+        }
+
+        .control-group::after {
+            content: '';
+            position: absolute;
+            bottom: -5px;
+            right: -5px;
+            width: 20px;
+            height: 20px;
+            background: var(--neon-purple);
+            clip-path: polygon(100% 0, 0% 100%, 100% 100%);
         }
 
         .slider {
             width: 100%;
-            margin: 10px 0;
-            accent-color: var(--primary);
+            margin: 15px 0;
+            -webkit-appearance: none;
+            background: rgba(0, 243, 255, 0.2);
+            height: 4px;
+            border-radius: 2px;
+        }
+
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 15px;
+            height: 15px;
+            background: var(--neon-blue);
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 0 10px var(--neon-blue);
         }
 
         canvas {
             max-width: 100%;
-            border-radius: 15px;
+            border: 2px solid var(--neon-blue);
             margin: 20px 0;
-            box-shadow: var(--shadow);
+            box-shadow: var(--cyber-glow);
         }
 
         button {
-            background: var(--primary);
-            color: var(--bg-dark);
+            background: var(--neon-blue);
+            color: black;
             border: none;
-            padding: 10px 20px;
-            border-radius: 10px;
-            cursor: pointer;
-            margin: 5px;
-            font-weight: bold;
-            transition: opacity 0.3s ease;
+            padding: 10px 25px;
+            font-family: 'Orbitron', sans-serif;
+            letter-spacing: 2px;
+            position: relative;
+            overflow: hidden;
+            transition: 0.3s;
+            margin: 10px;
+            clip-path: polygon(10% 0, 100% 0, 90% 100%, 0% 100%);
         }
 
         button:hover {
-            opacity: 0.8;
-        }
-
-        #fileInput {
-            display: none;
+            background: var(--neon-purple);
+            color: white;
+            box-shadow: 0 0 15px var(--neon-purple);
         }
 
         .upload-label {
             display: inline-block;
-            background: var(--primary);
-            color: var(--bg-dark);
-            padding: 10px 20px;
-            border-radius: 10px;
+            background: var(--neon-purple);
+            color: white;
+            padding: 10px 25px;
+            clip-path: polygon(10% 0, 100% 0, 90% 100%, 0% 100%);
             cursor: pointer;
+            transition: 0.3s;
             margin: 10px 0;
-            font-weight: bold;
-            transition: opacity 0.3s ease;
-        }
-
-        .upload-label:hover {
-            opacity: 0.8;
         }
 
         h1 {
             text-align: center;
-            margin-bottom: 20px;
-            font-size: 2.5rem;
-            color: var(--primary);
+            color: var(--neon-blue);
+            text-shadow: 0 0 15px var(--neon-blue);
+            letter-spacing: 3px;
+            font-size: 2.5em;
+            margin: 20px 0;
         }
 
         h3 {
+            color: var(--neon-blue);
             margin-top: 0;
-            color: var(--primary);
+            border-bottom: 2px solid var(--neon-blue);
+            padding-bottom: 5px;
         }
     </style>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500&display=swap" rel="stylesheet">
 </head>
 <body>
     <div class="container">
-        <h1>රූප වැඩිදියුණු කිරීමේ මෙවලම්</h1>
-        
+        <h1>CYBER IMAGE ENHANCER</h1>
         <div class="image-editor">
             <input type="file" id="fileInput" accept="image/*">
-            <label for="fileInput" class="upload-label">රූපයක් තෝරන්න</label>
+            <label for="fileInput" class="upload-label">UPLOAD IMAGE</label>
             
             <div class="controls">
                 <div class="control-group">
-                    <h3>දීප්තිය සහ වර්ණ</h3>
-                    <label>දීප්තිය: <input type="range" class="slider" id="brightness" min="-100" max="100" value="0"></label>
-                    <label>වර්ණ සන්තෘප්තිය: <input type="range" class="slider" id="saturation" min="-100" max="100" value="0"></label>
-                    <label>පරතරය: <input type="range" class="slider" id="contrast" min="-100" max="100" value="0"></label>
+                    <h3>BASIC SETTINGS</h3>
+                    <label>Brightness: <input type="range" class="slider" id="brightness" min="-100" max="100" value="0"></label>
+                    <label>Contrast: <input type="range" class="slider" id="contrast" min="-100" max="100" value="0"></label>
+                    <label>Pixel Density: <input type="range" class="slider" id="density" min="50" max="200" value="100"></label>
                 </div>
                 
                 <div class="control-group">
-                    <h3>තියුණු කිරීම සහ Noise Reduction</h3>
-                    <label>තියුණු බව: <input type="range" class="slider" id="sharpness" min="0" max="100" value="0"></label>
+                    <h3>ADVANCED PROCESSING</h3>
+                    <label>Sharpness: <input type="range" class="slider" id="sharpness" min="0" max="100" value="0"></label>
                     <label>Noise Reduction: <input type="range" class="slider" id="noise" min="0" max="100" value="0"></label>
                 </div>
             </div>
 
             <canvas id="canvas"></canvas>
             
-            <div>
-                <button onclick="resetImage()">යළි සකසන්න</button>
-                <button onclick="saveImage()">රූපය සුරකින්න</button>
+            <div style="text-align: center;">
+                <button onclick="resetImage()">RESET</button>
+                <button onclick="saveImage()">SAVE IMAGE</button>
             </div>
         </div>
     </div>
@@ -154,6 +192,15 @@
         const ctx = canvas.getContext('2d');
         let originalImage = null;
 
+        // Pixel Density Handler
+        function adjustDensity() {
+            if (!originalImage) return;
+            const density = document.getElementById('density').value / 100;
+            canvas.width = originalImage.width * density;
+            canvas.height = originalImage.height * density;
+            applyFilters();
+        }
+
         document.getElementById('fileInput').addEventListener('change', function(e) {
             const file = e.target.files[0];
             if (file) {
@@ -162,9 +209,7 @@
                     const img = new Image();
                     img.onload = function() {
                         originalImage = img;
-                        canvas.width = img.width;
-                        canvas.height = img.height;
-                        applyFilters();
+                        adjustDensity();
                     }
                     img.src = event.target.result;
                 }
@@ -172,108 +217,96 @@
             }
         });
 
-        // Add listeners to all sliders
         document.querySelectorAll('.slider').forEach(slider => {
-            slider.addEventListener('input', applyFilters);
+            slider.addEventListener('input', () => {
+                if(slider.id === 'density') adjustDensity();
+                else applyFilters();
+            });
         });
 
         function applyFilters() {
             if (!originalImage) return;
 
-            ctx.filter = 'none';
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.drawImage(originalImage, 0, 0);
+            ctx.drawImage(originalImage, 0, 0, canvas.width, canvas.height);
 
+            // Apply basic filters
             const brightness = document.getElementById('brightness').value;
             const contrast = document.getElementById('contrast').value;
-            const saturation = document.getElementById('saturation').value;
+            ctx.filter = `brightness(${100 + parseInt(brightness)}%) contrast(${100 + parseInt(contrast)}%)`;
+
+            // Advanced processing
             const sharpness = document.getElementById('sharpness').value;
             const noise = document.getElementById('noise').value;
-
-            // Apply filters
-            ctx.filter = `brightness(${100 + parseInt(brightness)}%) 
-                         contrast(${100 + parseInt(contrast)}%) 
-                         saturate(${100 + parseInt(saturation)}%)`;
-            ctx.drawImage(originalImage, 0, 0);
-
-            // Apply noise reduction
+            
             if (noise > 0) {
                 const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
                 applyNoiseReduction(imageData, noise);
                 ctx.putImageData(imageData, 0, 0);
             }
 
-            // Apply sharpness
             if (sharpness > 0) {
-                applySharpness(sharpness / 100);
+                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                applySharpness(imageData, sharpness / 100);
+                ctx.putImageData(imageData, 0, 0);
             }
         }
 
+        // Noise Reduction Algorithm (Improved)
         function applyNoiseReduction(imageData, intensity) {
             const data = imageData.data;
-            const width = imageData.width;
-            const height = imageData.height;
-            const radius = Math.floor(intensity / 20); // Adjust radius based on intensity
+            const temp = new Uint8ClampedArray(data);
+            const radius = Math.ceil(intensity / 20);
 
-            const tempData = new Uint8ClampedArray(data);
-
-            for (let y = 0; y < height; y++) {
-                for (let x = 0; x < width; x++) {
-                    let r = 0, g = 0, b = 0, count = 0;
-
-                    // Average surrounding pixels
-                    for (let dy = -radius; dy <= radius; dy++) {
-                        for (let dx = -radius; dx <= radius; dx++) {
-                            const cx = x + dx;
-                            const cy = y + dy;
-                            if (cx >= 0 && cx < width && cy >= 0 && cy < height) {
-                                const idx = (cy * width + cx) * 4;
-                                r += tempData[idx];
-                                g += tempData[idx + 1];
-                                b += tempData[idx + 2];
-                                count++;
-                            }
+            for(let i = 0; i < data.length; i += 4) {
+                const x = (i/4) % imageData.width;
+                const y = Math.floor((i/4) / imageData.width);
+                
+                let r = 0, g = 0, b = 0, count = 0;
+                
+                for(let dy = -radius; dy <= radius; dy++) {
+                    for(let dx = -radius; dx <= radius; dx++) {
+                        const cx = x + dx;
+                        const cy = y + dy;
+                        if(cx >= 0 && cx < imageData.width && cy >= 0 && cy < imageData.height) {
+                            const idx = (cy * imageData.width + cx) * 4;
+                            r += temp[idx];
+                            g += temp[idx+1];
+                            b += temp[idx+2];
+                            count++;
                         }
                     }
-
-                    // Set averaged color
-                    const idx = (y * width + x) * 4;
-                    data[idx] = r / count;
-                    data[idx + 1] = g / count;
-                    data[idx + 2] = b / count;
                 }
+                
+                data[i] = r/count;
+                data[i+1] = g/count;
+                data[i+2] = b/count;
             }
         }
 
-        function applySharpness(amount) {
-            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        // Sharpness Algorithm
+        function applySharpness(imageData, amount) {
             const data = imageData.data;
-
-            for (let i = 0; i < data.length; i += 4) {
-                const r = data[i];
-                const g = data[i + 1];
-                const b = data[i + 2];
-
-                // Simple sharpening algorithm
-                data[i] = r + (r - 128) * amount;
-                data[i + 1] = g + (g - 128) * amount;
-                data[i + 2] = b + (b - 128) * amount;
+            const temp = new Uint8ClampedArray(data);
+            
+            for(let i = 0; i < data.length; i += 4) {
+                const avg = (temp[i] + temp[i+1] + temp[i+2]) / 3;
+                data[i] = temp[i] + (temp[i] - avg) * amount;
+                data[i+1] = temp[i+1] + (temp[i+1] - avg) * amount;
+                data[i+2] = temp[i+2] + (temp[i+2] - avg) * amount;
             }
-
-            ctx.putImageData(imageData, 0, 0);
         }
 
         function resetImage() {
-            if (!originalImage) return;
             document.querySelectorAll('.slider').forEach(slider => {
-                slider.value = 0;
+                slider.value = slider.id === 'density' ? 100 : 0;
             });
-            applyFilters();
+            adjustDensity();
         }
 
         function saveImage() {
             const link = document.createElement('a');
-            link.download = 'enhanced_image.png';
+            link.download = 'cyber-enhanced.png';
             link.href = canvas.toDataURL();
             link.click();
         }
