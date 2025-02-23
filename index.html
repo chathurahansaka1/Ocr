@@ -3,62 +3,59 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI 4K රූප උස්සා නැංවීම</title>
+    <title>AI HD Converter</title>
     <style>
         :root {
             --primary: #2563eb;
-            --secondary: #1d4ed8;
+            --secondary: #1e40af;
         }
         body {
-            font-family: 'Inter', sans-serif;
-            background: #f8fafc;
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 2rem;
+            font-family: 'Arial', sans-serif;
+            background: #f1f5f9;
+            max-width: 800px;
+            margin: 2rem auto;
+            padding: 1rem;
         }
-        .drop-zone {
+        .upload-box {
             border: 2px dashed #94a3b8;
-            border-radius: 1rem;
+            border-radius: 10px;
             padding: 2rem;
             text-align: center;
-            cursor: pointer;
-            transition: 0.3s;
-        }
-        .drop-zone:hover {
-            border-color: var(--primary);
+            background: white;
+            margin-bottom: 2rem;
         }
         canvas {
-            background: white;
-            border-radius: 0.5rem;
-            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
         }
         #preview {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
             gap: 2rem;
-            margin-top: 2rem;
+            grid-template-columns: 1fr 1fr;
         }
-        .btn {
+        button {
             background: var(--primary);
             color: white;
-            padding: 0.75rem 1.5rem;
-            border-radius: 0.375rem;
+            padding: 0.8rem 1.5rem;
             border: none;
+            border-radius: 6px;
             cursor: pointer;
             transition: 0.2s;
             margin-top: 1rem;
         }
-        .btn:hover {
+        button:hover {
             background: var(--secondary);
         }
         .loader {
             border: 4px solid #e2e8f0;
             border-top-color: var(--primary);
             border-radius: 50%;
-            width: 3rem;
-            height: 3rem;
+            width: 30px;
+            height: 30px;
             animation: spin 1s linear infinite;
-            margin: 2rem auto;
+            margin: 1rem auto;
         }
         @keyframes spin {
             to { transform: rotate(360deg); }
@@ -66,20 +63,25 @@
     </style>
 </head>
 <body>
-    <div class="drop-zone" id="dropZone">
-        <p>රූපය මෙතැන ඇදගෙන එන්න හෝ ක්ලික් කරන්න</p>
+    <div class="upload-box">
         <input type="file" id="fileInput" accept="image/*" hidden>
+        <label for="fileInput" style="cursor: pointer;">
+            <h3>🖼️ රූපය තෝරන්න (JPG/PNG)</h3>
+            <p>උපරිම ප්රමාණය: 5MB</p>
+        </label>
     </div>
 
-    <button class="btn" onclick="enhanceImage()" id="processBtn">HD කරන්න</button>
+    <div style="text-align: center;">
+        <button onclick="enhanceImage()" id="processBtn">HD කරන්න (4x)</button>
+    </div>
 
     <div id="preview">
         <div>
-            <h3>මුල් රූපය</h3>
+            <h4>මුල් රූපය</h4>
             <canvas id="inputCanvas"></canvas>
         </div>
         <div>
-            <h3>4K රූපය</h3>
+            <h4>HD රූපය</h4>
             <canvas id="outputCanvas"></canvas>
         </div>
     </div>
@@ -88,24 +90,28 @@
 
     <!-- TensorFlow.js -->
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.9.0/dist/tf.min.js"></script>
-    <!-- WASM ImageMagick -->
-    <script src="https://cdn.jsdelivr.net/npm/@imagemagick/magick-wasm@0.0.14/dist/magick.wasm.js"></script>
-
+    
     <script>
         let model = null;
         let inputImage = null;
 
-        // Drag & Drop සහාය
-        document.getElementById('dropZone').addEventListener('click', () => {
-            document.getElementById('fileInput').click();
-        });
+        // 1. Model Loading
+        async function loadModel() {
+            try {
+                document.getElementById('loader').style.display = 'block';
+                model = await tf.loadGraphModel('https://cdn.jsdelivr.net/gh/keras-js/keras-js-samples/src/ESRGAN/model/model.json');
+                console.log('Model loaded!');
+                document.getElementById('loader').style.display = 'none';
+            } catch (error) {
+                alert('Model loading failed: ' + error.message);
+            }
+        }
 
+        // 2. Image Handling
         document.getElementById('fileInput').addEventListener('change', function(e) {
-            loadImage(e.target.files[0]);
-        });
+            const file = e.target.files[0];
+            if (!file) return;
 
-        // රූපය පූර්ව සැකසුම
-        async function loadImage(file) {
             const reader = new FileReader();
             reader.onload = (e) => {
                 inputImage = new Image();
@@ -118,90 +124,66 @@
                 };
             };
             reader.readAsDataURL(file);
-        }
+        });
 
-        // Real-ESRGAN මාදිලිය
-        async function loadESRGAN() {
-            try {
-                model = await tf.loadGraphModel('https://unpkg.com/@upscalerjs/esrgan-slim@1.0.0/models/model.json');
-                console.log('මාදිලිය සාර්ථකව ලබා ගන්නා ලදී!');
-            } catch (error) {
-                console.error('මාදිලි දෝෂය:', error);
-                alert('මාදිලිය ලබා ගැනීමට අසමත් විය. අන්තර්ජාල සම්බන්ධතාවය පරීක්ෂා කරන්න.');
-            }
-        }
-
-        // රූපය HD කිරීම
+        // 3. HD Enhancement
         async function enhanceImage() {
-            if (!inputImage) return alert('ප්රථමයෙන් රූපයක් තෝරන්න!');
-
+            if (!inputImage) return alert('රූපයක් තෝරන්න!');
+            
             const loader = document.getElementById('loader');
-            loader.style.display = 'block';
-
             try {
-                // රූපය ටෙන්සර් ආකාරයෙන් පරිවර්තනය
+                loader.style.display = 'block';
+                
+                // Preprocess
                 const inputTensor = tf.browser.fromPixels(inputImage)
                     .toFloat()
                     .div(255.0)
                     .expandDims();
 
-                // ESRGAN මගින් උස්සා නැංවීම
+                // Inference
                 const outputTensor = await model.executeAsync(inputTensor);
 
-                // ප්රතිඵල කැන්වස් වෙත ලබා ගැනීම
+                // Postprocess
                 const outputCanvas = document.getElementById('outputCanvas');
                 outputCanvas.width = inputImage.width * 4;
                 outputCanvas.height = inputImage.height * 4;
-
+                
                 await tf.browser.toPixels(outputTensor.squeeze(), outputCanvas);
+                applySharpening(outputCanvas);
 
-                // ImageMagick මගින් පසු සැකසුම
-                await applyMagickFilters(outputCanvas);
-
-                // බාගත කිරීමේ බොත්තම
+                // Download
                 createDownloadButton(outputCanvas);
 
             } catch (error) {
-                console.error('HD කිරීමේ දෝෂය:', error);
-                alert('රූපය HD කිරීම අසාර්ථක විය!');
+                alert('Error: ' + error.message);
             } finally {
                 loader.style.display = 'none';
                 tf.dispose([inputTensor, outputTensor]);
             }
         }
 
-        // ImageMagick පසු සැකසුම්
-        async function applyMagickFilters(canvas) {
-            const magick = new Magick();
-            const pixels = await canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);
-            
-            magick.readImageData(pixels, 'input.png', (image) => {
-                image.resize('400%');
-                image.unsharpMask(0.25, 0.08, 0.051, 0.05);
-                image.write('output.png', (output) => {
-                    const img = new Image();
-                    img.src = output;
-                    canvas.getContext('2d').drawImage(img, 0, 0);
-                });
-            });
+        // 4. Sharpening
+        function applySharpening(canvas) {
+            const ctx = canvas.getContext('2d');
+            ctx.filter = 'contrast(110%) saturate(120%)';
+            ctx.drawImage(canvas, 0, 0);
         }
 
-        // බාගත කිරීමේ බොත්තම
+        // 5. Download
         function createDownloadButton(canvas) {
             const btn = document.createElement('button');
-            btn.className = 'btn';
-            btn.textContent = '4K රූපය බාගන්න';
+            btn.innerHTML = '⬇️ HD රූපය බාගන්න';
             btn.onclick = () => {
                 const link = document.createElement('a');
-                link.download = `4k_${Date.now()}.png`;
-                link.href = canvas.toDataURL('image/png', 1.0);
+                link.download = `hd_${Date.now()}.png`;
+                link.href = canvas.toDataURL('image/png');
                 link.click();
             };
-            document.body.appendChild(btn);
+            document.querySelector('body').appendChild(btn);
         }
 
-        // මාදිලිය ආරම්භ කිරීම
-        window.onload = loadESRGAN;
+        // Initialize
+        window.onload = loadModel;
     </script>
 </body>
 </html>
