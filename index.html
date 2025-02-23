@@ -1,566 +1,207 @@
 <!DOCTYPE html>
 <html lang="si">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>සිංහල අත්අකුරු හඳුනාගැනීම (Free Tesseract.js)</title>
-  <!-- Tesseract.js Library (v2.1.5) -->
-  <script src="https://unpkg.com/tesseract.js@2.1.5/dist/tesseract.min.js"></script>
-  <style>
-    :root {
-      --primary-color: #00ffcc;
-      --secondary-color: #ff00ff;
-      --accent-color: #ffcc00;
-      --error-color: #ff4444;
-      --surface-color: #1e1e1e;
-      --background-color: #121212;
-      --text-color: #ffffff;
-      --gradient: linear-gradient(135deg, #00ffcc 0%, #ff00ff 100%);
-      --neon-shadow: 0 0 10px rgba(0, 255, 204, 0.7), 0 0 20px rgba(0, 255, 204, 0.5);
-    }
-
-    body {
-      font-family: 'Iskoola Pota', 'Noto Sans Sinhala', 'Inter', sans-serif;
-      margin: 0;
-      padding: 20px;
-      background: var(--background-color);
-      color: var(--text-color);
-      min-height: 100vh;
-    }
-
-    .container {
-      max-width: 900px;
-      margin: 2rem auto;
-      background: var(--surface-color);
-      padding: 2.5rem;
-      border-radius: 24px;
-      box-shadow: var(--neon-shadow);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      position: relative;
-    }
-
-    h1 {
-      text-align: center;
-      background: var(--gradient);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      margin-bottom: 2.5rem;
-      font-size: 2.5rem;
-      letter-spacing: -0.5px;
-      position: relative;
-      padding-bottom: 1rem;
-    }
-
-    h1::after {
-      content: '';
-      position: absolute;
-      bottom: 0;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 120px;
-      height: 3px;
-      background: var(--gradient);
-      border-radius: 2px;
-    }
-
-    .upload-container {
-      position: relative;
-      margin-bottom: 2rem;
-    }
-
-    .upload-area {
-      border: 2px dashed rgba(255, 255, 255, 0.2);
-      padding: 3rem 2rem;
-      text-align: center;
-      border-radius: 16px;
-      cursor: pointer;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      background: rgba(255, 255, 255, 0.05);
-      position: relative;
-      overflow: hidden;
-    }
-
-    .upload-area.drag-over {
-      border-color: var(--primary-color);
-      background: rgba(0, 255, 204, 0.05);
-      transform: translateY(-2px);
-      box-shadow: var(--neon-shadow);
-    }
-
-    .upload-area:hover {
-      border-color: var(--primary-color);
-      box-shadow: var(--neon-shadow);
-    }
-
-    .upload-icon {
-      font-size: 3.5rem;
-      margin-bottom: 1rem;
-      background: var(--gradient);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-    }
-
-    #imageInput {
-      display: none;
-    }
-
-    #preview {
-      max-width: 100%;
-      max-height: 500px;
-      border-radius: 12px;
-      box-shadow: var(--neon-shadow);
-      transition: opacity 0.3s ease;
-      border: 1px solid rgba(255, 255, 255, 0.1);
-    }
-
-    .loading {
-      display: none;
-      position: relative;
-      padding: 2rem;
-      background: rgba(0, 0, 0, 0.5);
-      border-radius: 12px;
-      margin: 2rem 0;
-      box-shadow: var(--neon-shadow);
-      text-align: center;
-    }
-
-    .spinner {
-      width: 48px;
-      height: 48px;
-      border: 3px solid rgba(255, 255, 255, 0.2);
-      border-top-color: var(--primary-color);
-      border-radius: 50%;
-      animation: spin 1s linear infinite;
-      margin: 0 auto 1rem auto;
-    }
-
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
-
-    .result-container {
-      background: rgba(255, 255, 255, 0.05);
-      padding: 2rem;
-      border-radius: 16px;
-      box-shadow: var(--neon-shadow);
-      margin-top: 2rem;
-      border: 1px solid rgba(255, 255, 255, 0.1);
-    }
-
-    .button {
-      background: var(--gradient);
-      color: var(--text-color);
-      border: none;
-      padding: 0.75rem 1.5rem;
-      border-radius: 8px;
-      cursor: pointer;
-      font-size: 1rem;
-      font-weight: 500;
-      display: inline-flex;
-      align-items: center;
-      gap: 0.5rem;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      backdrop-filter: blur(4px);
-    }
-
-    .button:hover {
-      transform: translateY(-2px);
-      box-shadow: var(--neon-shadow);
-    }
-
-    .settings-panel {
-      margin-bottom: 2rem;
-      padding: 1.5rem;
-      background: rgba(255, 255, 255, 0.05);
-      border-radius: 12px;
-      backdrop-filter: blur(8px);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-    }
-
-    .processing-options {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 1.5rem;
-    }
-
-    .option-group {
-      background: rgba(255, 255, 255, 0.1);
-      padding: 1rem;
-      border-radius: 8px;
-      border: 1px solid rgba(255, 255, 255, 0.1);
-    }
-
-    .option-group label {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      margin-bottom: 0.75rem;
-      cursor: pointer;
-      padding: 0.5rem;
-      border-radius: 6px;
-      transition: background 0.2s ease;
-    }
-
-    .option-group label:hover {
-      background: rgba(0, 255, 204, 0.1);
-    }
-
-    /* Floating Action Button (FAB) */
-    .fab {
-      position: fixed;
-      bottom: 2rem;
-      right: 2rem;
-      background: var(--gradient);
-      color: var(--text-color);
-      border: none;
-      padding: 1rem;
-      border-radius: 50%;
-      cursor: pointer;
-      box-shadow: var(--neon-shadow);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: all 0.3s ease;
-    }
-
-    .fab:hover {
-      transform: scale(1.1);
-    }
-
-    /* Footer */
-    footer {
-      text-align: center;
-      margin-top: 3rem;
-      padding: 1rem;
-      border-top: 1px solid rgba(255, 255, 255, 0.1);
-    }
-
-    footer a {
-      color: var(--primary-color);
-      text-decoration: none;
-      margin: 0 0.5rem;
-    }
-
-    footer a:hover {
-      text-decoration: underline;
-    }
-
-    @media (max-width: 640px) {
-      .container {
-        padding: 1.5rem;
-        margin: 1rem;
-      }
-      
-      h1 {
-        font-size: 2rem;
-      }
-      
-      .upload-area {
-        padding: 2rem 1rem;
-      }
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 4K රූප උස්සා නැංවීම</title>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --secondary: #1d4ed8;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #f8fafc;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        .drop-zone {
+            border: 2px dashed #94a3b8;
+            border-radius: 1rem;
+            padding: 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+        .drop-zone:hover {
+            border-color: var(--primary);
+        }
+        canvas {
+            background: white;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+        }
+        #preview {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+        .btn {
+            background: var(--primary);
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.375rem;
+            border: none;
+            cursor: pointer;
+            transition: 0.2s;
+            margin-top: 1rem;
+        }
+        .btn:hover {
+            background: var(--secondary);
+        }
+        .loader {
+            border: 4px solid #e2e8f0;
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            width: 3rem;
+            height: 3rem;
+            animation: spin 1s linear infinite;
+            margin: 2rem auto;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
 </head>
 <body>
-  <div class="container">
-    <h1>සිංහල අත්අකුරු හඳුනාගැනීම (Free)</h1>
-    
-    <!-- Floating Action Button (FAB) -->
-    <button class="fab" onclick="toggleSettings()">⚙️</button>
-    
-    <!-- Settings Panel -->
-    <div class="settings-panel" id="settingsPanel">
-      <div class="processing-options">
-        <div class="option-group">
-          <label>
-            <input type="checkbox" id="enhanceContrast" checked>
-            වර්ණ වැඩිදියුණු කිරීම
-          </label>
-          <label>
-            <input type="checkbox" id="removeNoise" checked>
-            පසුබිම් ශබ්දය ඉවත් කිරීම
-          </label>
+    <div class="drop-zone" id="dropZone">
+        <p>රූපය මෙතැන ඇදගෙන එන්න හෝ ක්ලික් කරන්න</p>
+        <input type="file" id="fileInput" accept="image/*" hidden>
+    </div>
+
+    <button class="btn" onclick="enhanceImage()" id="processBtn">HD කරන්න</button>
+
+    <div id="preview">
+        <div>
+            <h3>මුල් රූපය</h3>
+            <canvas id="inputCanvas"></canvas>
         </div>
-        <div class="option-group">
-          <label>
-            <input type="checkbox" id="autoRotate" checked>
-            ස්වයංක්‍රීය භ්‍රමණය
-          </label>
+        <div>
+            <h3>4K රූපය</h3>
+            <canvas id="outputCanvas"></canvas>
         </div>
-      </div>
-      <div class="language-select">
-        <label for="languageSelector">භාෂාව තෝරන්න:</label>
-        <select id="languageSelector">
-          <option value="si" selected>සිංහල (sin)</option>
-          <option value="en">English (eng)</option>
-          <option value="si,en">සිංහල + English (sin+eng)</option>
-          <option value="si,en,ta">සිංහල + English + Tamil (sin+eng+tam)</option>
-        </select>
-      </div>
     </div>
-    
-    <!-- Upload Area -->
-    <div class="upload-container">
-      <div class="upload-area" id="uploadArea" onclick="document.getElementById('imageInput').click()">
-        <div class="upload-icon">📄</div>
-        <p>පින්තූරයක් Upload කරන්න හෝ මෙතනට Drag කරන්න</p>
-        <input type="file" id="imageInput" accept="image/*" capture="camera">
-      </div>
-    </div>
-    
-    <!-- Preview and Results -->
-    <div class="preview-container">
-      <img id="preview" style="display:none;">
-    </div>
-    
-    <div class="loading">
-      <div class="spinner"></div>
-      <p>සකසමින් පවතී...</p>
-    </div>
-    
-    <div class="result-container" style="display: none;">
-      <div id="result"></div>
-      <div class="actions" style="margin-top:1rem;">
-        <button class="button" onclick="retryRecognition()">
-          🔄 නැවත උත්සාහ කරන්න
-        </button>
-        <button id="copyBtn" class="button copy-button">
-          📋 Copy කරන්න
-        </button>
-        <button id="speakBtn" class="button" onclick="speakText()">
-          🔊 කියවන්න
-        </button>
-      </div>
-    </div>
-  </div>
-  
-  <!-- Footer -->
-  <footer>
-    <p>සංවර්ධනය කළේ <a href="#">Your Name</a> | <a href="#">සහය</a></p>
-  </footer>
-  
-  <script>
-    // We'll use Tesseract.js for free OCR with Sinhala/English/Tamil
-    // No API key needed; everything runs locally in the browser.
 
-    // DOM Elements
-    const imageInput = document.getElementById('imageInput');
-    const preview = document.getElementById('preview');
-    const result = document.getElementById('result');
-    const loading = document.querySelector('.loading');
-    const copyBtn = document.getElementById('copyBtn');
-    const uploadArea = document.getElementById('uploadArea');
-    const resultContainer = document.querySelector('.result-container');
-    const settingsPanel = document.getElementById('settingsPanel');
+    <div class="loader" id="loader" style="display: none;"></div>
 
-    // Settings Elements
-    const enhanceContrast = document.getElementById('enhanceContrast');
-    const removeNoise = document.getElementById('removeNoise');
-    const autoRotate = document.getElementById('autoRotate');
-    const languageSelector = document.getElementById('languageSelector');
+    <!-- TensorFlow.js -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.9.0/dist/tf.min.js"></script>
+    <!-- WASM ImageMagick -->
+    <script src="https://cdn.jsdelivr.net/npm/@imagemagick/magick-wasm@0.0.14/dist/magick.wasm.js"></script>
 
-    // Create a Tesseract.js worker (one time)
-    const { createWorker } = Tesseract;
-    const worker = createWorker({
-      logger: m => console.log(m) // progress logger
-    });
+    <script>
+        let model = null;
+        let inputImage = null;
 
-    function toggleSettings() {
-      settingsPanel.style.display = (settingsPanel.style.display === 'none' || !settingsPanel.style.display)
-        ? 'block'
-        : 'none';
-    }
-
-    // Convert the user's language selection into Tesseract language codes
-    function getTesseractLang() {
-      const val = languageSelector.value;
-      // We'll map "si" -> "sin", "en" -> "eng", "ta" -> "tam"
-      // If multiple, we join them with '+'
-      // e.g. "si,en" -> "sin+eng", "si,en,ta" -> "sin+eng+tam"
-      if (val === 'si') return 'sin';
-      if (val === 'en') return 'eng';
-      if (val === 'si,en') return 'sin+eng';
-      if (val === 'si,en,ta') return 'sin+eng+tam';
-      return 'sin'; // default
-    }
-
-    // Handle drag and drop events
-    uploadArea.addEventListener('dragover', (e) => {
-      e.preventDefault();
-      uploadArea.classList.add('drag-over');
-    });
-
-    uploadArea.addEventListener('dragleave', (e) => {
-      e.preventDefault();
-      uploadArea.classList.remove('drag-over');
-    });
-
-    uploadArea.addEventListener('drop', (e) => {
-      e.preventDefault();
-      uploadArea.classList.remove('drag-over');
-      
-      const file = e.dataTransfer.files[0];
-      if (file && file.type.startsWith('image/')) {
-        handleImage(file);
-      }
-    });
-
-    // Handle file input change
-    imageInput.addEventListener('change', (e) => {
-      const file = e.target.files[0];
-      if (file) {
-        handleImage(file);
-      }
-    });
-
-    async function handleImage(file) {
-      try {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          preview.src = e.target.result;
-          preview.style.display = 'block';
-          preview.style.opacity = '0';
-          setTimeout(() => { preview.style.opacity = '1'; }, 50);
-          preprocessImage(e.target.result);
-        };
-        reader.readAsDataURL(file);
-      } catch (error) {
-        showError('පින්තූරය කියවීමේ දෝෂයකි: ' + error.message);
-      }
-    }
-
-    async function preprocessImage(imageData) {
-      try {
-        loading.style.display = 'block';
-        result.textContent = '';
-        resultContainer.style.display = 'none';
-
-        // Load the image into a canvas for optional preprocessing
-        const img = new Image();
-        img.src = imageData;
-        await new Promise((resolve, reject) => {
-          img.onload = () => resolve();
-          img.onerror = () => reject('Image load error');
+        // Drag & Drop සහාය
+        document.getElementById('dropZone').addEventListener('click', () => {
+            document.getElementById('fileInput').click();
         });
 
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        canvas.width = img.width;
-        canvas.height = img.height;
-
-        // Apply optional filters
-        let filterStr = '';
-        if (enhanceContrast.checked) {
-          filterStr += 'contrast(1.2) brightness(1.1) ';
-        }
-        if (removeNoise.checked) {
-          filterStr += 'blur(0.5px) ';
-        }
-        // autoRotate is not truly handled by Tesseract automatically,
-        // but Tesseract does attempt orientation detection.
-        // We'll just pass the image as-is.
-        ctx.filter = filterStr.trim();
-        ctx.drawImage(img, 0, 0);
-
-        const processedImageData = canvas.toDataURL('image/jpeg', 0.9);
-        recognizeText(processedImageData);
-      } catch (error) {
-        showError('පින්තූරය සැකසීමේ දෝෂයකි: ' + error);
-        loading.style.display = 'none';
-      }
-    }
-
-    async function recognizeText(imageUrl) {
-      try {
-        const selectedLang = getTesseractLang();
-        
-        // 1) Load Tesseract worker if not loaded
-        await worker.load();
-        // 2) Load the correct language
-        await worker.loadLanguage(selectedLang);
-        // 3) Initialize
-        await worker.initialize(selectedLang);
-
-        // 4) Recognize the text
-        const { data: { text } } = await worker.recognize(imageUrl);
-        
-        loading.style.display = 'none';
-        
-        if (text && text.trim()) {
-          result.textContent = text;
-          resultContainer.style.display = 'block';
-        } else {
-          showError('අදාළ පාඨයක් හමු නොවීය.');
-        }
-      } catch (error) {
-        showError('පෙළ හඳුනාගැනීමේ දෝෂයකි: ' + error);
-        loading.style.display = 'none';
-      }
-    }
-
-    function showError(message) {
-      result.textContent = message;
-      resultContainer.style.display = 'block';
-    }
-
-    function retryRecognition() {
-      result.textContent = '';
-      resultContainer.style.display = 'none';
-      preview.src = '';
-      preview.style.display = 'none';
-      imageInput.value = '';
-    }
-
-    // Copy to clipboard function
-    copyBtn.addEventListener('click', () => {
-      const textContent = result.textContent.trim();
-      if (!textContent) {
-        alert('පෙළක් නොමැත!');
-        return;
-      }
-      navigator.clipboard.writeText(textContent)
-        .then(() => {
-          alert('පෙළ පිටපත් කරන ලදි.');
-        })
-        .catch(err => {
-          alert('කොපි කිරීම් දෝෂයකි: ' + err);
+        document.getElementById('fileInput').addEventListener('change', function(e) {
+            loadImage(e.target.files[0]);
         });
-    });
 
-    // Text-to-Speech
-    function speakText() {
-      const text = result.textContent.trim();
-      if (!text) {
-        alert('පෙළක් නොමැත!');
-        return;
-      }
-      let voices = speechSynthesis.getVoices();
-      if (voices.length === 0) {
-        // If voices not loaded yet, wait for voiceschanged
-        speechSynthesis.onvoiceschanged = () => {
-          voices = speechSynthesis.getVoices();
-          speakUsingVoice(voices, text);
-        };
-      } else {
-        speakUsingVoice(voices, text);
-      }
-    }
+        // රූපය පූර්ව සැකසුම
+        async function loadImage(file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                inputImage = new Image();
+                inputImage.src = e.target.result;
+                inputImage.onload = () => {
+                    const canvas = document.getElementById('inputCanvas');
+                    canvas.width = inputImage.width;
+                    canvas.height = inputImage.height;
+                    canvas.getContext('2d').drawImage(inputImage, 0, 0);
+                };
+            };
+            reader.readAsDataURL(file);
+        }
 
-    function speakUsingVoice(voices, text) {
-      const utterance = new SpeechSynthesisUtterance(text);
-      // Attempt to pick a Sinhala voice if we want Sinhala TTS
-      // Not all systems have Sinhala voices. If none, it will use default.
-      const sinhalaVoice = voices.find(v => v.lang.toLowerCase().startsWith('si'));
-      if (sinhalaVoice) {
-        utterance.voice = sinhalaVoice;
-      }
-      speechSynthesis.speak(utterance);
-    }
+        // Real-ESRGAN මාදිලිය
+        async function loadESRGAN() {
+            try {
+                model = await tf.loadGraphModel('https://unpkg.com/@upscalerjs/esrgan-slim@1.0.0/models/model.json');
+                console.log('මාදිලිය සාර්ථකව ලබා ගන්නා ලදී!');
+            } catch (error) {
+                console.error('මාදිලි දෝෂය:', error);
+                alert('මාදිලිය ලබා ගැනීමට අසමත් විය. අන්තර්ජාල සම්බන්ධතාවය පරීක්ෂා කරන්න.');
+            }
+        }
 
-    // Make sure we load voices if needed
-    window.speechSynthesis.onvoiceschanged = () => {
-      speechSynthesis.getVoices();
-    };
-  </script>
+        // රූපය HD කිරීම
+        async function enhanceImage() {
+            if (!inputImage) return alert('ප්රථමයෙන් රූපයක් තෝරන්න!');
+
+            const loader = document.getElementById('loader');
+            loader.style.display = 'block';
+
+            try {
+                // රූපය ටෙන්සර් ආකාරයෙන් පරිවර්තනය
+                const inputTensor = tf.browser.fromPixels(inputImage)
+                    .toFloat()
+                    .div(255.0)
+                    .expandDims();
+
+                // ESRGAN මගින් උස්සා නැංවීම
+                const outputTensor = await model.executeAsync(inputTensor);
+
+                // ප්රතිඵල කැන්වස් වෙත ලබා ගැනීම
+                const outputCanvas = document.getElementById('outputCanvas');
+                outputCanvas.width = inputImage.width * 4;
+                outputCanvas.height = inputImage.height * 4;
+
+                await tf.browser.toPixels(outputTensor.squeeze(), outputCanvas);
+
+                // ImageMagick මගින් පසු සැකසුම
+                await applyMagickFilters(outputCanvas);
+
+                // බාගත කිරීමේ බොත්තම
+                createDownloadButton(outputCanvas);
+
+            } catch (error) {
+                console.error('HD කිරීමේ දෝෂය:', error);
+                alert('රූපය HD කිරීම අසාර්ථක විය!');
+            } finally {
+                loader.style.display = 'none';
+                tf.dispose([inputTensor, outputTensor]);
+            }
+        }
+
+        // ImageMagick පසු සැකසුම්
+        async function applyMagickFilters(canvas) {
+            const magick = new Magick();
+            const pixels = await canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);
+            
+            magick.readImageData(pixels, 'input.png', (image) => {
+                image.resize('400%');
+                image.unsharpMask(0.25, 0.08, 0.051, 0.05);
+                image.write('output.png', (output) => {
+                    const img = new Image();
+                    img.src = output;
+                    canvas.getContext('2d').drawImage(img, 0, 0);
+                });
+            });
+        }
+
+        // බාගත කිරීමේ බොත්තම
+        function createDownloadButton(canvas) {
+            const btn = document.createElement('button');
+            btn.className = 'btn';
+            btn.textContent = '4K රූපය බාගන්න';
+            btn.onclick = () => {
+                const link = document.createElement('a');
+                link.download = `4k_${Date.now()}.png`;
+                link.href = canvas.toDataURL('image/png', 1.0);
+                link.click();
+            };
+            document.body.appendChild(btn);
+        }
+
+        // මාදිලිය ආරම්භ කිරීම
+        window.onload = loadESRGAN;
+    </script>
 </body>
 </html>
