@@ -87,15 +87,29 @@
 
     <div class="loader" id="loader"></div>
 
-    <!-- AI Upscaler Library -->
-    <script src="https://cdn.jsdelivr.net/npm/upscaler@1.0.0/dist/upscaler.min.js"></script>
+    <!-- TensorFlow.js -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.9.0/dist/tf.min.js"></script>
+    <!-- ESRGAN Model -->
+    <script src="https://cdn.jsdelivr.net/npm/esrgan-tfjs@1.0.0/dist/esrgan.min.js"></script>
 
     <script>
-        const upscaler = new Upscaler({
-            model: 'https://unpkg.com/@upscalerjs/esrgan-slim@1.0.0/models/4x/generator.json',
-        });
-
+        let model = null;
         let inputImage = null;
+
+        // ESRGAN මාදිලිය ලබා ගැනීම
+        async function loadModel() {
+            try {
+                const loader = document.getElementById('loader');
+                loader.style.display = 'block';
+                
+                model = await tf.loadGraphModel('https://cdn.jsdelivr.net/npm/esrgan-tfjs@1.0.0/models/4x/generator.json');
+                console.log('මාදිලිය සාර්ථකව ලබා ගන්නා ලදී!');
+                loader.style.display = 'none';
+            } catch (error) {
+                console.error('මාදිලි දෝෂය:', error);
+                alert('මාදිලිය ලබා ගැනීමට අසමත් විය. අන්තර්ජාල සම්බන්ධතාවය පරීක්ෂා කරන්න.');
+            }
+        }
 
         // රූපය තෝරන්න
         document.getElementById('fileInput').addEventListener('change', function(e) {
@@ -124,17 +138,21 @@
             try {
                 loader.style.display = 'block';
                 
-                // රූපය උස්සා නැංවීම
-                const upscaledImage = await upscaler.upscale(inputImage.src, {
-                    output: 'canvas',
-                    scale: 4
-                });
+                // රූපය ටෙන්සර් ආකාරයෙන් පරිවර්තනය
+                const inputTensor = tf.browser.fromPixels(inputImage)
+                    .toFloat()
+                    .div(255.0)
+                    .expandDims();
 
-                // ප්රතිඵලය පෙන්වන්න
+                // ESRGAN මගින් උස්සා නැංවීම
+                const outputTensor = await model.executeAsync(inputTensor);
+
+                // ප්රතිඵල කැන්වස් වෙත ලබා ගැනීම
                 const outputCanvas = document.getElementById('outputCanvas');
-                outputCanvas.width = upscaledImage.width;
-                outputCanvas.height = upscaledImage.height;
-                outputCanvas.getContext('2d').drawImage(upscaledImage, 0, 0);
+                outputCanvas.width = inputImage.width * 4;
+                outputCanvas.height = inputImage.height * 4;
+
+                await tf.browser.toPixels(outputTensor.squeeze(), outputCanvas);
 
                 // බාගත කිරීම
                 createDownloadButton(outputCanvas);
@@ -143,6 +161,7 @@
                 alert('දෝෂය: ' + error.message);
             } finally {
                 loader.style.display = 'none';
+                tf.dispose([inputTensor, outputTensor]);
             }
         }
 
@@ -158,6 +177,9 @@
             };
             document.body.appendChild(btn);
         }
+
+        // මාදිලිය ආරම්භ කිරීම
+        window.onload = loadModel;
     </script>
 </body>
 </html>
