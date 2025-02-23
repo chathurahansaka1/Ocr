@@ -3,182 +3,190 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI රූප උස්සා නැංවීම</title>
+    <title>Cyber AI Enhancer</title>
     <style>
         :root {
-            --primary: #3B82F6;
-            --secondary: #2563EB;
+            --neon-cyan: #0ff;
+            --cyber-bg: #000;
         }
+
         body {
-            font-family: 'Roboto', sans-serif;
-            background: #F8FAFC;
+            font-family: 'Courier New', monospace;
+            background: var(--cyber-bg);
+            color: var(--neon-cyan);
+            min-height: 100vh;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .cyber-box {
+            border: 2px solid var(--neon-cyan);
+            padding: 20px;
+            margin: 20px;
+            background: rgba(0,0,0,0.8);
+            box-shadow: 0 0 15px var(--neon-cyan);
             max-width: 800px;
-            margin: 2rem auto;
-            padding: 1rem;
+            width: 90%;
         }
-        .upload-box {
-            border: 2px dashed #94A3B8;
-            border-radius: 10px;
-            padding: 2rem;
-            text-align: center;
-            background: white;
-            margin-bottom: 2rem;
-            cursor: pointer;
-        }
+
         canvas {
             max-width: 100%;
             height: auto;
-            border-radius: 8px;
-            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+            margin: 10px 0;
         }
-        #preview {
-            display: grid;
-            gap: 2rem;
-            grid-template-columns: 1fr 1fr;
+
+        #progressBar {
+            width: 100%;
+            height: 10px;
+            background: #111;
+            margin: 20px 0;
         }
+
+        #progressFill {
+            width: 0%;
+            height: 100%;
+            background: var(--neon-cyan);
+            transition: width 0.3s;
+        }
+
         button {
-            background: var(--primary);
-            color: white;
-            padding: 12px 24px;
-            border: none;
-            border-radius: 8px;
+            background: transparent;
+            border: 2px solid var(--neon-cyan);
+            color: var(--neon-cyan);
+            padding: 10px 20px;
             cursor: pointer;
-            transition: 0.2s;
-            margin: 1rem 0;
+            transition: 0.3s;
         }
+
         button:hover {
-            background: var(--secondary);
+            background: var(--neon-cyan);
+            color: #000;
         }
-        .loader {
-            border: 4px solid #E2E8F0;
-            border-top-color: var(--primary);
-            border-radius: 50%;
-            width: 30px;
-            height: 30px;
-            animation: spin 1s linear infinite;
-            margin: 1rem auto;
-            display: none;
-        }
-        @keyframes spin {
-            to { transform: rotate(360deg); }
+
+        .status {
+            color: #0f0;
+            margin: 10px 0;
         }
     </style>
 </head>
 <body>
-    <div class="upload-box" onclick="document.getElementById('fileInput').click()">
-        <h3>🖼️ රූපය තෝරන්න</h3>
-        <p>(JPG, PNG, 5MB ට අඩු)</p>
-    </div>
-
-    <div style="text-align: center;">
-        <button onclick="processImage()">HD කරන්න</button>
-    </div>
-
-    <div id="preview">
-        <div>
-            <h4>මුල් රූපය</h4>
+    <div class="cyber-box">
+        <h1>▲ CYBER ENHANCER v3.0 ▲</h1>
+        
+        <input type="file" id="imageInput" accept="image/*" hidden>
+        <button onclick="document.getElementById('imageInput').click()">රූපය තෝරන්න</button>
+        
+        <div class="status" id="status">[ පද්ධතිය සූදානම් ]</div>
+        
+        <div id="preview">
             <canvas id="inputCanvas"></canvas>
-        </div>
-        <div>
-            <h4>HD රූපය</h4>
             <canvas id="outputCanvas"></canvas>
         </div>
+
+        <div id="progressBar">
+            <div id="progressFill"></div>
+        </div>
+
+        <button onclick="startProcessing()" id="processBtn">ප්රතිනිර්මාණය ආරම්භ කරන්න</button>
     </div>
 
-    <div class="loader" id="loader"></div>
-
-    <!-- TensorFlow.js -->
+    <!-- Local TensorFlow.js -->
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.9.0/dist/tf.min.js"></script>
-    <!-- ESRGAN Model -->
-    <script src="https://cdn.jsdelivr.net/npm/esrgan-tfjs@1.0.0/dist/esrgan.min.js"></script>
 
     <script>
         let model = null;
         let inputImage = null;
 
-        // ESRGAN මාදිලිය ලබා ගැනීම
+        // 1. Model Loading
         async function loadModel() {
             try {
-                const loader = document.getElementById('loader');
-                loader.style.display = 'block';
-                
-                model = await tf.loadGraphModel('https://cdn.jsdelivr.net/npm/esrgan-tfjs@1.0.0/models/4x/generator.json');
-                console.log('මාදිලිය සාර්ථකව ලබා ගන්නා ලදී!');
-                loader.style.display = 'none';
+                document.getElementById('status').textContent = '[ මාදිලිය ලබා ගැනීම... ]';
+                model = await tf.loadGraphModel('models/model.json');
+                document.getElementById('status').textContent = '[ පද්ධතිය සූදානම් ]';
             } catch (error) {
-                console.error('මාදිලි දෝෂය:', error);
-                alert('මාදිලිය ලබා ගැනීමට අසමත් විය. අන්තර්ජාල සම්බන්ධතාවය පරීක්ෂා කරන්න.');
+                showError('මාදිලිය ලබා ගැනීමට අසමත් විය: ' + error.message);
             }
         }
 
-        // රූපය තෝරන්න
-        document.getElementById('fileInput').addEventListener('change', function(e) {
+        // 2. Image Handling
+        document.getElementById('imageInput').addEventListener('change', function(e) {
             const file = e.target.files[0];
             if (!file) return;
+
+            if(file.size > 5*1024*1024) {
+                showError('රූපය 5MB ට වඩා විශාලයි!');
+                return;
+            }
 
             const reader = new FileReader();
             reader.onload = (e) => {
                 inputImage = new Image();
-                inputImage.src = e.target.result;
                 inputImage.onload = () => {
                     const canvas = document.getElementById('inputCanvas');
                     canvas.width = inputImage.width;
                     canvas.height = inputImage.height;
                     canvas.getContext('2d').drawImage(inputImage, 0, 0);
+                    document.getElementById('status').textContent = '[ රූපය සූදානම් ]';
                 };
+                inputImage.src = e.target.result;
             };
             reader.readAsDataURL(file);
         });
 
-        // HD කිරීමේ ක්රියාවලිය
-        async function processImage() {
-            if (!inputImage) return alert('රූපයක් තෝරන්න!');
+        // 3. Processing
+        async function startProcessing() {
+            if (!inputImage || !model) {
+                showError('ප්රථමයෙන් රූපයක් තෝරන්න!');
+                return;
+            }
 
-            const loader = document.getElementById('loader');
             try {
-                loader.style.display = 'block';
-                
-                // රූපය ටෙන්සර් ආකාරයෙන් පරිවර්තනය
+                document.getElementById('processBtn').disabled = true;
+                updateProgress(0);
+
+                // Preprocessing
                 const inputTensor = tf.browser.fromPixels(inputImage)
                     .toFloat()
                     .div(255.0)
                     .expandDims();
 
-                // ESRGAN මගින් උස්සා නැංවීම
+                // Processing
+                updateProgress(30);
                 const outputTensor = await model.executeAsync(inputTensor);
 
-                // ප්රතිඵල කැන්වස් වෙත ලබා ගැනීම
+                // Postprocessing
+                updateProgress(70);
                 const outputCanvas = document.getElementById('outputCanvas');
                 outputCanvas.width = inputImage.width * 4;
                 outputCanvas.height = inputImage.height * 4;
-
                 await tf.browser.toPixels(outputTensor.squeeze(), outputCanvas);
-
-                // බාගත කිරීම
-                createDownloadButton(outputCanvas);
+                
+                updateProgress(100);
+                document.getElementById('status').textContent = '[ සාර්ථකව නිම කරන ලදී ]';
 
             } catch (error) {
-                alert('දෝෂය: ' + error.message);
+                showError('ප්රතිනිර්මාණ දෝෂය: ' + error.message);
             } finally {
-                loader.style.display = 'none';
-                tf.dispose([inputTensor, outputTensor]);
+                document.getElementById('processBtn').disabled = false;
+                if(inputTensor) tf.dispose([inputTensor]);
+                if(outputTensor) tf.dispose([outputTensor]);
             }
         }
 
-        // බාගත කිරීමේ බොත්තම
-        function createDownloadButton(canvas) {
-            const btn = document.createElement('button');
-            btn.innerHTML = '⬇️ HD රූපය බාගන්න';
-            btn.onclick = () => {
-                const link = document.createElement('a');
-                link.download = `hd_${Date.now()}.png`;
-                link.href = canvas.toDataURL('image/png');
-                link.click();
-            };
-            document.body.appendChild(btn);
+        // Helper Functions
+        function updateProgress(percent) {
+            document.getElementById('progressFill').style.width = percent + '%';
         }
 
-        // මාදිලිය ආරම්භ කිරීම
+        function showError(message) {
+            document.getElementById('status').textContent = '[ දෝෂය ]: ' + message;
+            document.getElementById('progressFill').style.width = '0%';
+            document.getElementById('processBtn').disabled = false;
+        }
+
+        // Initialize
         window.onload = loadModel;
     </script>
 </body>
