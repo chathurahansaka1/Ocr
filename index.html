@@ -9,7 +9,6 @@
             --neon-cyan: #0ff;
             --cyber-bg: #000;
         }
-
         body {
             font-family: 'Courier New', monospace;
             background: var(--cyber-bg);
@@ -20,7 +19,6 @@
             flex-direction: column;
             align-items: center;
         }
-
         .container {
             border: 3px solid var(--neon-cyan);
             box-shadow: 0 0 20px var(--neon-cyan);
@@ -31,7 +29,6 @@
             position: relative;
             overflow: hidden;
         }
-
         .container::before {
             content: '';
             position: absolute;
@@ -45,12 +42,10 @@
             );
             animation: scan 4s linear infinite;
         }
-
         @keyframes scan {
             0% { transform: translate(-50%, -50%) rotate(45deg) translateY(-200%); }
             100% { transform: translate(-50%, -50%) rotate(45deg) translateY(200%); }
         }
-
         .upload-box {
             border: 2px dashed var(--neon-cyan);
             padding: 2rem;
@@ -59,14 +54,13 @@
             position: relative;
             z-index: 1;
         }
-
         canvas {
             background: #111;
             border: 1px solid var(--neon-cyan);
             margin: 1rem 0;
             max-width: 100%;
+            display: none;
         }
-
         .cyber-button {
             background: transparent;
             border: 2px solid var(--neon-cyan);
@@ -76,26 +70,39 @@
             transition: 0.3s;
             position: relative;
             overflow: hidden;
+            margin: 0.5rem;
         }
-
         .cyber-button:hover {
             background: var(--neon-cyan);
             color: #000;
             box-shadow: 0 0 30px var(--neon-cyan);
         }
-
+        .cyber-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
         .progress-bar {
             height: 8px;
             background: rgba(255,255,255,0.1);
             margin: 1rem 0;
             overflow: hidden;
+            display: none;
         }
-
         .progress-fill {
             width: 0%;
             height: 100%;
             background: var(--neon-cyan);
             transition: width 0.3s;
+        }
+        .status-message {
+            color: var(--neon-cyan);
+            margin: 1rem 0;
+            text-align: center;
+        }
+        #preview img {
+            max-width: 100%;
+            margin: 1rem 0;
+            display: none;
         }
     </style>
 </head>
@@ -104,115 +111,131 @@
         <h1 style="text-align: center; text-shadow: 0 0 15px var(--neon-cyan);">
             CYBER ENHANCER v2.0
         </h1>
-
         <div class="upload-box">
             <input type="file" id="fileInput" accept="image/*" hidden>
             <label for="fileInput" class="cyber-button">
                 රූපය තෝරන්න
             </label>
+            <div id="status" class="status-message"></div>
             
             <div id="preview">
+                <img id="inputPreview" alt="Input Preview">
                 <canvas id="inputCanvas"></canvas>
                 <div style="margin: 1rem;">▼</div>
                 <canvas id="outputCanvas"></canvas>
             </div>
-
-            <div class="progress-bar">
+            <div class="progress-bar" id="progressBar">
                 <div class="progress-fill" id="progressFill"></div>
             </div>
         </div>
-
-        <button class="cyber-button" id="processBtn" onclick="startProcessing()">
+        <button class="cyber-button" id="processBtn" onclick="startProcessing()" disabled>
             HD කිරීම ආරම්භ කරන්න
         </button>
     </div>
 
-    <!-- TensorFlow.js -->
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.9.0/dist/tf.min.js"></script>
     <script>
         let model = null;
         let inputImage = null;
+        const status = document.getElementById('status');
+        const processBtn = document.getElementById('processBtn');
+        const progressBar = document.getElementById('progressBar');
+        const inputPreview = document.getElementById('inputPreview');
 
-        // 1. File Input Handling
+        function showStatus(message) {
+            status.textContent = message;
+        }
+
         document.getElementById('fileInput').addEventListener('change', function(e) {
             const file = e.target.files[0];
             if (!file) return;
+            
+            if (!file.type.startsWith('image/')) {
+                showStatus('කරුණාකර රූප ගොනුවක් පමණක් තෝරන්න');
+                return;
+            }
 
             const reader = new FileReader();
             reader.onload = function(e) {
                 inputImage = new Image();
                 inputImage.onload = () => {
-                    const canvas = document.getElementById('inputCanvas');
-                    canvas.width = inputImage.width;
-                    canvas.height = inputImage.height;
-                    const ctx = canvas.getContext('2d');
-                    ctx.drawImage(inputImage, 0, 0);
-                    document.getElementById('processBtn').disabled = false;
+                    inputPreview.src = e.target.result;
+                    inputPreview.style.display = 'block';
+                    processBtn.disabled = !model;
+                    showStatus('රූපය සාර්ථකව උඩුගත කරන ලදී');
                 };
                 inputImage.src = e.target.result;
+            };
+            reader.onerror = () => {
+                showStatus('ගොනුව කියවීමේ දෝෂයක් සිදු විය');
             };
             reader.readAsDataURL(file);
         });
 
-        // 2. AI Model Loading
         async function loadModel() {
+            showStatus('AI මාදිලිය පූරණය වෙමින්...');
             try {
-                model = await tf.loadGraphModel(
-                    'https://cdn.jsdelivr.net/npm/esrgan-tfjs@1.0.0/models/4x/generator.json'
-                );
-                console.log('AI මාදිලිය සාර්ථකව ලබා ගන්නා ලදී');
+                model = await tf.loadGraphModel('https://tfhub.dev/captain-pool/esrgan-tf2/1');
+                showStatus('AI මාදිලිය සාර්ථකව පූරණය විය');
+                if (inputImage) processBtn.disabled = false;
             } catch (error) {
-                console.error('මාදිලි දෝෂය:', error);
-                alert('මාදිලිය ලබා ගැනීමට අසමත් විය');
+                console.error('Model loading error:', error);
+                showStatus('AI මාදිලිය පූරණය කිරීමේ දෝෂයක් ඇති විය');
             }
         }
 
-        // 3. Image Processing
         async function startProcessing() {
             if (!inputImage || !model) return;
 
             try {
-                document.getElementById('processBtn').disabled = true;
+                processBtn.disabled = true;
+                progressBar.style.display = 'block';
                 updateProgress(10);
+                showStatus('රූපය සකස් කරමින්...');
 
-                // Preprocess image
                 const inputTensor = tf.browser.fromPixels(inputImage)
                     .toFloat()
                     .div(255.0)
                     .expandDims();
 
-                // AI Processing
                 updateProgress(30);
-                const outputTensor = await model.executeAsync(inputTensor);
+                showStatus('AI විශ්ලේෂණය සිදු කරමින්...');
                 
-                // Postprocess
+                const outputTensor = await model.predict(inputTensor);
+                
                 updateProgress(70);
+                showStatus('අවසන් රූපය සකස් කරමින්...');
+
                 const outputCanvas = document.getElementById('outputCanvas');
+                outputCanvas.style.display = 'block';
                 outputCanvas.width = inputImage.width * 4;
                 outputCanvas.height = inputImage.height * 4;
                 await tf.browser.toPixels(outputTensor.squeeze(), outputCanvas);
 
-                // Finalize
                 updateProgress(100);
+                showStatus('සැකසීම සම්පූර්ණයි!');
                 createDownloadButton(outputCanvas);
 
-            } catch (error) {
-                console.error('සැකසුම් දෝෂය:', error);
-                alert('රූප සැකසුම අසාර්ථක විය');
-            } finally {
-                document.getElementById('processBtn').disabled = false;
                 tf.dispose([inputTensor, outputTensor]);
+            } catch (error) {
+                console.error('Processing error:', error);
+                showStatus('රූපය සැකසීමේ දෝෂයක් ඇති විය');
+                updateProgress(0);
+            } finally {
+                processBtn.disabled = false;
             }
         }
 
-        // 4. Helper Functions
         function updateProgress(percent) {
             document.getElementById('progressFill').style.width = percent + '%';
         }
 
         function createDownloadButton(canvas) {
+            const existingBtn = document.querySelector('.download-btn');
+            if (existingBtn) existingBtn.remove();
+
             const btn = document.createElement('button');
-            btn.className = 'cyber-button';
+            btn.className = 'cyber-button download-btn';
             btn.style.marginTop = '1rem';
             btn.textContent = 'HD රූපය බාගන්න';
             btn.onclick = () => {
@@ -224,7 +247,6 @@
             document.querySelector('.upload-box').appendChild(btn);
         }
 
-        // Initialize
         window.onload = loadModel;
     </script>
 </body>
