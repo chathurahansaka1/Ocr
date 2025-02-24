@@ -91,9 +91,10 @@
         const downloadBtn = document.getElementById('downloadBtn');
         let enhancedImageUrl = null;
 
-        // Cloudinary URL සැකසුම්
-        const cloudinaryUrl = 'cloudinary://381512519856339:-gmShooACwQOQaw58H-dP2qxEeU@dadtdcknk';
-        const uploadUrl = `https://api.cloudinary.com/v1_1/dadtdcknk/image/upload`;
+        // Cloudinary API සැකසුම්
+        const cloudName = 'dadtdcknk'; // ඔබේ Cloud Name
+        const uploadPreset = 'ml_default'; // ඔබේ Upload Preset
+        const uploadUrl = `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`;
 
         // රූපය උඩුගත කිරීම
         document.getElementById('fileInput').addEventListener('change', async (e) => {
@@ -106,7 +107,7 @@
                 // රූපය උඩුගත කිරීම
                 const formData = new FormData();
                 formData.append('file', file);
-                formData.append('upload_preset', 'YOUR_UPLOAD_PRESET'); // ඔබේ Upload Preset
+                formData.append('upload_preset', uploadPreset);
 
                 const response = await fetch(uploadUrl, {
                     method: 'POST',
